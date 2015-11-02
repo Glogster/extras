@@ -2,26 +2,23 @@
 
 SERVERNAME=$1
 MAILTO="Glogster Backup <backups@glogster.com>"
-LOGFILE="backup.log"
+LOGFILE="/var/log/backup.log"
 LOCK="/opt/backup/lock.$SERVERNAME"
 TARGETS="/opt/backup/targets"
-#LOCALDESTDIR="/mnt/nas-backup/backups/$SERVERNAME"
 LOCALDESTDIR="/mnt/backup"
 KEEP='14D'
+SENDMAIL=n
 
 date +"Subject: Backup $SERVERNAME log (%Y-%m-%d)" > $LOGFILE
 echo -e "From: Backup <backups@glogstergroup.com>" >>$LOGFILE
 echo -e "To: $MAILTO\n" >>$LOGFILE
 
-
 if [ -f "$LOCK" ]; then
-
 	date +"##### %Y-%m-%d %T %a : Backup error: Previous backup still running. #####" >> $LOGFILE
-
+	SENDMAIL=y
 elif ! mountpoint -q "$LOCALDESTDIR"; then
-
 	date +"##### %Y-%m-%d %T %a : Backup error: Local directory is not mounted. #####" >> $LOGFILE
-
+	SENDMAIL=y
 else
 
 	touch "$LOCK"
@@ -44,3 +41,12 @@ else
 	rm -f "$LOCK"
 
 fi
+
+echo -e "\n" >>$LOGFILE
+date +"##### %Y-%m-%d %T %a : Backup end #####" >> $LOGFILE
+
+if [ $SENDMAIL = "y" ]; then
+	/usr/sbin/sendmail -t < $LOGFILE
+fi
+
+exit 0
